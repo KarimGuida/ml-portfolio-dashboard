@@ -1,0 +1,22 @@
+{
+    "MAE": 0.08129402497773977,
+    "RMSE": 0.10583899212924454,
+    "R2": 0.4522302075826755,
+    "train_shape": [
+        400,
+        7
+    ],
+    "test_shape": [
+        100,
+        7
+    ],
+    "features": [
+        "GRE_Score",
+        "TOEFL_Score",
+        "University_Rating",
+        "SOP",
+        "LOR",
+        "CGPA",
+        "Research"
+    ]
+}

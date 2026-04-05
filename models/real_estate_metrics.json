@@ -1,0 +1,28 @@
+{
+    "MAE": 47229.59616935484,
+    "RMSE": 65296.31953446553,
+    "R2": 0.7907720120054016,
+    "train_shape": [
+        1488,
+        13
+    ],
+    "test_shape": [
+        372,
+        13
+    ],
+    "features": [
+        "year_sold",
+        "property_tax",
+        "insurance",
+        "beds",
+        "baths",
+        "sqft",
+        "year_built",
+        "lot_size",
+        "basement",
+        "popular",
+        "recession",
+        "property_age",
+        "property_type_Condo"
+    ]
+}

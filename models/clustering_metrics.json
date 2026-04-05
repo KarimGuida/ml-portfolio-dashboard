@@ -1,0 +1,9 @@
+{
+    "n_clusters": 5,
+    "features": [
+        "Annual_Income",
+        "Spending_Score"
+    ],
+    "rows": 200,
+    "columns": 5
+}
