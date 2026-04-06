@@ -17,7 +17,7 @@ def render_clustering_page():
     st.header("Customer Segmentation (Clustering)")
     st.write("Segment customers based on income and spending behavior.")
 
-    tabs = st.tabs(["Overview", "EDA", "Clusters", "Try It"])
+    tabs = st.tabs(["Overview", "EDA", "Model", "Predict"])
 
     df = pd.read_csv(DATA_PATH)
 
@@ -38,14 +38,15 @@ def render_clustering_page():
             """
         )
 
-        st.subheader("Dataset Preview")
-        st.dataframe(df.head(10), width="stretch")
-
+        
         c1, c2, c3 = st.columns(3)
         c1.metric("Rows", df.shape[0])
         c2.metric("Columns", df.shape[1])
         c3.metric("Clusters", 5)
+        st.subheader("Dataset Preview")
+        st.dataframe(df.head(10), width="stretch")
 
+        
     with tabs[1]:
         st.subheader("Exploratory Data Analysis")
 
@@ -60,7 +61,7 @@ def render_clustering_page():
         st.dataframe(df.describe(), width="stretch")
 
     with tabs[2]:
-        st.subheader("Cluster Visualization")
+        st.subheader("Model Output")
         st.pyplot(plot_clusters(df, model, scaler))
         st.caption("Numbers on the X markers identify the cluster centers.")
 
@@ -68,7 +69,7 @@ def render_clustering_page():
         st.dataframe(legend_df, width="stretch")
 
     with tabs[3]:
-        st.subheader("Try Customer Segmentation")
+        st.subheader("Interactive Prediction")
         st.write(
             "Adjust the values below to see which customer segment a profile belongs to."
         )
