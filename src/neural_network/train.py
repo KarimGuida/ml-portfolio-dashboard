@@ -6,8 +6,8 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.impute import SimpleImputer
 from sklearn.compose import ColumnTransformer
-from sklearn.neural_network import MLPRegressor
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.neural_network import MLPClassifier
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 
 from src.utils.helpers import save_object
 
@@ -25,7 +25,8 @@ def main():
 
     X = df.drop(columns=["Admit_Chance", "Serial_No"], errors="ignore")
 
-    y = df["Admit_Chance"]
+    # Match notebook logic: convert to binary target
+    y = (df["Admit_Chance"] >= 0.80).astype(int)
 
     numeric_cols = X.select_dtypes(include=["number"]).columns.tolist()
     categorical_cols = X.select_dtypes(exclude=["number"]).columns.tolist()
@@ -46,7 +47,7 @@ def main():
 
     pipeline = Pipeline([
         ("preprocessor", preprocessor),
-        ("model", MLPRegressor(
+        ("model", MLPClassifier(
             hidden_layer_sizes=(64, 32),
             max_iter=1000,
             random_state=42
@@ -54,31 +55,40 @@ def main():
     ])
 
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
+        X,
+        y,
+        test_size=0.2,
+        random_state=42,
+        stratify=y
     )
 
     pipeline.fit(X_train, y_train)
     y_pred = pipeline.predict(X_test)
 
-    mae = mean_absolute_error(y_test, y_pred)
-    rmse = mean_squared_error(y_test, y_pred) ** 0.5
-    r2 = r2_score(y_test, y_pred)
+    accuracy = accuracy_score(y_test, y_pred)
+    precision = precision_score(y_test, y_pred, zero_division=0)
+    recall = recall_score(y_test, y_pred, zero_division=0)
+    f1 = f1_score(y_test, y_pred, zero_division=0)
+    cm = confusion_matrix(y_test, y_pred).tolist()
 
     save_object(pipeline, MODEL_PATH)
 
     metrics = {
-        "MAE": float(mae),
-        "RMSE": float(rmse),
-        "R2": float(r2),
+        "Accuracy": float(accuracy),
+        "Precision": float(precision),
+        "Recall": float(recall),
+        "F1": float(f1),
+        "Confusion_Matrix": cm,
         "train_shape": list(X_train.shape),
         "test_shape": list(X_test.shape),
-        "features": list(X.columns)
+        "features": list(X.columns),
+        "target_definition": "1 if Admit_Chance >= 0.80 else 0"
     }
 
     with open(METRICS_PATH, "w", encoding="utf-8") as f:
         json.dump(metrics, f, indent=4)
 
-    print("Neural network training complete.")
+    print("Neural network classification training complete.")
     print(metrics)
 
 

@@ -1,7 +1,18 @@
 {
-    "MAE": 0.08129402497773977,
-    "RMSE": 0.10583899212924454,
-    "R2": 0.4522302075826755,
+    "Accuracy": 0.85,
+    "Precision": 0.7,
+    "Recall": 0.9032258064516129,
+    "F1": 0.7887323943661971,
+    "Confusion_Matrix": [
+        [
+            57,
+            12
+        ],
+        [
+            3,
+            28
+        ]
+    ],
     "train_shape": [
         400,
         7
@@ -18,5 +29,6 @@
         "LOR",
         "CGPA",
         "Research"
-    ]
+    ],
+    "target_definition": "1 if Admit_Chance >= 0.80 else 0"
 }
