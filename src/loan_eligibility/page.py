@@ -123,63 +123,48 @@ def render_loan_eligibility_page():
 
     with tabs[3]:
         st.subheader("Interactive Prediction")
+        st.write("Enter applicant details to evaluate loan approval likelihood.")
 
-        st.write(
-            "Enter applicant and loan details to estimate whether the loan is likely to be approved."
-        )
-        st.caption(
-            "Values should be realistic. Financial fields follow the same scale as the training dataset."
-        )
+        with st.form("loan_prediction_form"):
 
-        with st.form("loan_eligibility_form"):
-            left_col, right_col = st.columns(2)
+            col1, col2 = st.columns(2)
 
-            with left_col:
-                gender = st.selectbox("Gender", ["Male", "Female"])
-                married = st.selectbox("Married", ["Yes", "No"])
-                dependents = st.selectbox("Dependents", ["0", "1", "2", "3+"])
-                education = st.selectbox("Education Level", ["Graduate", "Not Graduate"])
-                self_employed = st.selectbox("Self-Employed", ["Yes", "No"])
-                property_area = st.selectbox("Property Area", ["Urban", "Semiurban", "Rural"])
-                credit_history_label = st.selectbox(
-                    "Credit History",
-                    ["Good (1)", "Poor / Missing (0)"],
-                    help="1 indicates positive credit history, 0 indicates poor or missing history."
-                )
+            with col1:
+                gender = st.selectbox("Gender", ["Male", "Female"], index=0)
+                married = st.selectbox("Married", ["Yes", "No"], index=0)
+                dependents = st.selectbox("Dependents", ["0", "1", "2", "3+"], index=0)
+                education = st.selectbox("Education Level", ["Graduate", "Not Graduate"], index=0)
+                self_employed = st.selectbox("Self-Employed", ["Yes", "No"], index=0)
+                property_area = st.selectbox("Property Area", ["Urban", "Semiurban", "Rural"], index=0)
 
-            with right_col:
+            with col2:
                 applicant_income = st.number_input(
                     "Applicant Income (dataset units)",
                     min_value=0.0,
-                    max_value=100000.0,
                     value=5000.0,
-                    step=100.0,
-                    help="Primary applicant income."
+                    step=100.0
                 )
-
                 coapplicant_income = st.number_input(
                     "Coapplicant Income (dataset units)",
                     min_value=0.0,
-                    max_value=100000.0,
                     value=0.0,
-                    step=100.0,
-                    help="Secondary applicant income (if any)."
+                    step=100.0
                 )
-
                 loan_amount = st.number_input(
                     "Loan Amount (likely in thousands)",
                     min_value=0.0,
-                    max_value=1000.0,
                     value=120.0,
-                    step=1.0,
-                    help="Requested loan amount."
+                    step=1.0
                 )
-
-                loan_amount_term = st.selectbox(
+                loan_term = st.selectbox(
                     "Loan Term (months)",
                     [12, 36, 60, 84, 120, 180, 240, 300, 360],
-                    index=8,
-                    help="Typical loan durations."
+                    index=8
+                )
+                credit_history_text = st.selectbox(
+                    "Credit History",
+                    ["Good (1)", "Poor (0)"],
+                    index=0
                 )
 
             submitted = st.form_submit_button("Predict")
@@ -194,8 +179,8 @@ def render_loan_eligibility_page():
                 "ApplicantIncome": applicant_income,
                 "CoapplicantIncome": coapplicant_income,
                 "LoanAmount": loan_amount,
-                "Loan_Amount_Term": float(loan_amount_term),
-                "Credit_History": 1.0 if credit_history_label == "Good (1)" else 0.0,
+                "Loan_Amount_Term": float(loan_term),
+                "Credit_History": 1.0 if credit_history_text == "Good (1)" else 0.0,
                 "Property_Area": property_area,
             }
 
@@ -213,7 +198,20 @@ def render_loan_eligibility_page():
                     st.info(f"Confidence: {result['confidence']:.2%}")
 
                 st.markdown("### Input Summary")
-                st.json(input_data)
+                input_summary = pd.DataFrame([{
+                    "Gender": gender,
+                    "Married": married,
+                    "Dependents": dependents,
+                    "Education": education,
+                    "Self_Employed": self_employed,
+                    "ApplicantIncome": applicant_income,
+                    "CoapplicantIncome": coapplicant_income,
+                    "LoanAmount": loan_amount,
+                    "Loan_Amount_Term": loan_term,
+                    "Credit_History": 1.0 if credit_history_text == "Good (1)" else 0.0,
+                    "Property_Area": property_area,
+                }])
+                st.dataframe(input_summary, width="stretch")
 
             except Exception as e:
                 st.error(f"Error: {e}")

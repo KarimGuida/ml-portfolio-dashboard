@@ -213,7 +213,23 @@ def render_real_estate_page():
                 st.write("This estimate is based on the trained regression model and the property features you entered.")
 
                 st.markdown("### Input Summary")
-                st.json(input_data)
+                input_summary = pd.DataFrame([{
+                    "Year Sold": year_sold,
+                    "Property Tax": property_tax,
+                    "Insurance": insurance,
+                    "Bedrooms": beds,
+                    "Bathrooms": baths,
+                    "Living Area (sq ft)": sqft,
+                    "Year Built": year_built,
+                    "Lot Size": lot_size,
+                    "Basement": basement_label,
+                    "Popular Area": popular_label,
+                    "Recession Period": recession_label,
+                    "Property Age": property_age,
+                    "Property Type": condo_label,
+                }])
+
+                st.dataframe(input_summary, width="stretch")
 
             except Exception as e:
                 st.error(f"Error: {e}")
