@@ -12,6 +12,7 @@ __pycache__/
 *.fls
 *.fdb_latexmk
 *.synctex.gz
+*.tex
 
 # Optional (safe)
 *.bbl
