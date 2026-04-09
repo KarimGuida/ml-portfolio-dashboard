@@ -1,17 +1,19 @@
-# ML Dashboard (Streamlit)
+# ML Portfolio Dashboard
 
 A modular, production-style machine learning portfolio built with **Streamlit**, showcasing multiple end-to-end ML projects including classification, regression, clustering, and neural networks.
+
+try the app: https://ml-portfolio-dashboard.streamlit.app/
 
 ---
 
 ## Overview
 
-This application combines four machine learning projects into a single interactive dashboard:
+This application integrates four machine learning workflows into a single interactive dashboard:
 
 - ✔️ Clean UI with modern styling  
 - ✔️ Modular architecture (training, prediction, EDA separated)  
 - ✔️ Interactive inputs for real-time predictions  
-- ✔️ Visualization of model behavior  
+- ✔️ Visualization and interpretation of model outputs  
 
 ---
 
@@ -23,25 +25,25 @@ This application combines four machine learning projects into a single interacti
 - **Goal:** Predict whether a loan application will be approved  
 
 **Features:**
-- Applicant income
-- Credit history
-- Education
-- Loan amount
-- Property area
+- Applicant income  
+- Credit history  
+- Education  
+- Loan amount  
+- Property area  
 
 ---
 
 ### 2. Real Estate Price Prediction
 - **Type:** Regression  
 - **Model:** Random Forest Regressor  
-- **Goal:** Estimate house prices  
+- **Goal:** Estimate property prices  
 
 **Features:**
-- Square footage
-- Number of bedrooms/bathrooms
-- Property tax & insurance
-- Year built
-- Lot size
+- Square footage  
+- Number of bedrooms/bathrooms  
+- Property tax & insurance  
+- Year built  
+- Lot size  
 
 ---
 
@@ -51,7 +53,7 @@ This application combines four machine learning projects into a single interacti
 - **Goal:** Group customers based on behavior  
 
 **Features:**
-- Annual income
+- Annual income  
 - Spending score  
 
 Includes:
@@ -62,23 +64,23 @@ Includes:
 ---
 
 ### 4. Admission Prediction (Neural Network)
-- **Type:** Regression  
-- **Model:** MLPRegressor (Neural Network)  
-- **Goal:** Predict graduate admission probability  
+- **Type:** Classification  
+- **Model:** MLPClassifier (Neural Network)  
+- **Goal:** Classify admission likelihood  
 
 **Features:**
-- GRE score
-- TOEFL score
-- CGPA
-- SOP & LOR ratings
-- Research experience
+- GRE score  
+- TOEFL score  
+- CGPA  
+- SOP & LOR ratings  
+- Research experience  
 
 ---
 
-
 ## Architecture
-```bash
-ML_Final_Projet/
+
+```text
+ml-portfolio-dashboard/
 ├── app.py
 ├── README.md
 ├── requirements.txt
@@ -91,16 +93,15 @@ ML_Final_Projet/
 └── src/
     ├── clustering/
     ├── loan_eligibility/
-    ├── neural_network/``
+    ├── neural_network/
     ├── real_estate/
     └── utils/
-```
+
 
 ## Installation
 
-```bash
-git clone 
+git clone https://github.com/KarimGuida/ml-portfolio-dashboard.git
 cd ml-portfolio-dashboard
 
 pip install -r requirements.txt
-```
+streamlit run app.py
