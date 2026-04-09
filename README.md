@@ -75,28 +75,26 @@ Includes:
 
 ---
 
+
 ## Architecture
 
-project/
-│
-├── app.py # Main Streamlit app
-│
-├── src/
-│ ├── loan/
-│ ├── real_estate/
-│ ├── clustering/
-│ ├── neural_network/
-│ ├── utils/
-│ └── styles.py # Global UI styling
-│
-├── models/ # Saved ML models (.pkl)
-├── data/ # Datasets
-├── notebooks/ # EDA & experiments
-│
-└── README.md
+ML_Final_Projet/
+├── app.py
+├── README.md
+├── requirements.txt
+├── .gitignore
+├── data/
+├── models/
+├── documentation/
+│   ├── report.pdf
+│   └── presentation.pdf
+└── src/
+    ├── clustering/
+    ├── loan_eligibility/
+    ├── neural_network/
+    ├── real_estate/
+    └── utils/
 
-
----
 
 ## Installation
 
