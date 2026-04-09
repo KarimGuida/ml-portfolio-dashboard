@@ -77,7 +77,7 @@ Includes:
 
 
 ## Architecture
-
+```bash
 ML_Final_Projet/
 ├── app.py
 ├── README.md
@@ -91,10 +91,10 @@ ML_Final_Projet/
 └── src/
     ├── clustering/
     ├── loan_eligibility/
-    ├── neural_network/
+    ├── neural_network/``
     ├── real_estate/
     └── utils/
-
+```
 
 ## Installation
 
@@ -103,3 +103,4 @@ git clone
 cd ml-portfolio-dashboard
 
 pip install -r requirements.txt
+```
