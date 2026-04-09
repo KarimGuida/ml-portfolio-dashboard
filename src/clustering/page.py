@@ -14,23 +14,34 @@ from src.clustering.visuals import (
     plot_clusters,
     get_cluster_legend_df,
 )
+from src.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 MODEL_PATH = "models/clustering_model.pkl"
 SCALER_PATH = "models/clustering_scaler.pkl"
 
 
 def render_clustering_page():
+    logger.info("Rendering clustering page")
+
     st.header("Customer Segmentation")
     st.write("Segment customers into behavior-based groups using a K-Means clustering model.")
 
     tabs = st.tabs(["Overview", "EDA", "Model", "Predict"])
 
+    logger.info("Loading clustering data from %s", "data/mall_customers.csv")
     df = load_clustering_data()
     feature_df = get_feature_view(df)
 
+    logger.info("Loading clustering model from %s", MODEL_PATH)
     model = load_object(MODEL_PATH)
+
+    logger.info("Loading clustering scaler from %s", SCALER_PATH)
     scaler = load_object(SCALER_PATH)
+
     legend_df = get_cluster_legend_df(model, scaler)
+    logger.info("Clustering assets loaded successfully")
 
     with tabs[0]:
         st.subheader("Overview")
@@ -115,11 +126,19 @@ def render_clustering_page():
             )
 
         if st.button("Predict"):
+            logger.info(
+                "Clustering prediction requested with Annual_Income=%s, Spending_Score=%s",
+                income,
+                score,
+            )
             try:
                 cluster = predict_cluster(income, score)
+                logger.info("Predicted cluster: %s", cluster)
+
                 segment_label = legend_df.loc[
                     legend_df["Cluster"] == cluster, "Segment Label"
                 ].iloc[0]
+                logger.info("Resolved segment label: %s", segment_label)
 
                 st.markdown("### Prediction Result")
                 st.success(f"Assigned Segment: Cluster {cluster} — {segment_label}")
@@ -139,5 +158,6 @@ def render_clustering_page():
                 )
                 st.dataframe(input_summary, width="stretch")
 
-            except Exception as e:
-                st.error(f"Error: {e}")
+            except Exception:
+                logger.exception("Error during clustering prediction")
+                st.error("An error occurred during prediction.")

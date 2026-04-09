@@ -2,6 +2,8 @@ import json
 import pandas as pd
 import streamlit as st
 
+from src.logging_config import get_logger
+
 from src.loan_eligibility.predict import predict_loan_eligibility
 from src.loan_eligibility.eda import (
     load_raw_data,
@@ -20,25 +22,35 @@ from src.loan_eligibility.visuals import (
     plot_correlation_heatmap,
 )
 
+logger = get_logger(__name__)
+
 METRICS_PATH = "models/loan_eligibility_metrics.json"
 
 
 def load_metrics():
+    logger.info("Loading loan eligibility metrics from %s", METRICS_PATH)
     try:
         with open(METRICS_PATH, "r", encoding="utf-8") as f:
-            return json.load(f)
+            metrics = json.load(f)
+            logger.info("Metrics loaded successfully")
+            return metrics
     except FileNotFoundError:
+        logger.warning("Metrics file not found")
         return None
 
 
 def render_loan_eligibility_page():
+    logger.info("Rendering loan eligibility page")
+
     st.header("Loan Eligibility Prediction")
     st.write("Classification project for predicting whether a loan application will be approved.")
 
     tabs = st.tabs(["Overview", "EDA", "Model", "Predict"])
 
+    logger.info("Loading raw dataset")
     df = load_raw_data()
     clean_df = get_clean_feature_frame(df)
+    logger.info("Dataset loaded with shape=%s", df.shape)
 
     with tabs[0]:
         st.subheader("Project Overview")
@@ -95,6 +107,7 @@ def render_loan_eligibility_page():
 
     with tabs[2]:
         st.subheader("Model Performance")
+
         metrics = load_metrics()
 
         if metrics is None:
@@ -138,38 +151,17 @@ def render_loan_eligibility_page():
                 property_area = st.selectbox("Property Area", ["Urban", "Semiurban", "Rural"], index=0)
 
             with col2:
-                applicant_income = st.number_input(
-                    "Applicant Income (dataset units)",
-                    min_value=0.0,
-                    value=5000.0,
-                    step=100.0
-                )
-                coapplicant_income = st.number_input(
-                    "Coapplicant Income (dataset units)",
-                    min_value=0.0,
-                    value=0.0,
-                    step=100.0
-                )
-                loan_amount = st.number_input(
-                    "Loan Amount (likely in thousands)",
-                    min_value=0.0,
-                    value=120.0,
-                    step=1.0
-                )
-                loan_term = st.selectbox(
-                    "Loan Term (months)",
-                    [12, 36, 60, 84, 120, 180, 240, 300, 360],
-                    index=8
-                )
-                credit_history_text = st.selectbox(
-                    "Credit History",
-                    ["Good (1)", "Poor (0)"],
-                    index=0
-                )
+                applicant_income = st.number_input("Applicant Income", min_value=0.0, value=5000.0)
+                coapplicant_income = st.number_input("Coapplicant Income", min_value=0.0, value=0.0)
+                loan_amount = st.number_input("Loan Amount", min_value=0.0, value=120.0)
+                loan_term = st.selectbox("Loan Term (months)", [12, 36, 60, 84, 120, 180, 240, 300, 360], index=8)
+                credit_history_text = st.selectbox("Credit History", ["Good (1)", "Poor (0)"], index=0)
 
             submitted = st.form_submit_button("Predict")
 
         if submitted:
+            logger.info("Loan prediction requested")
+
             input_data = {
                 "Gender": gender,
                 "Married": married,
@@ -184,34 +176,23 @@ def render_loan_eligibility_page():
                 "Property_Area": property_area,
             }
 
+            logger.info("Input data prepared for prediction")
+
             try:
                 result = predict_loan_eligibility(input_data)
+                logger.info("Prediction completed: %s", result)
 
                 if result["prediction"] == "Y":
-                    st.success("✅ Loan is likely to be APPROVED")
-                    st.write("The applicant profile matches patterns associated with approved loans.")
+                    st.success("Prediction: Likely Approved")
                 else:
-                    st.error("❌ Loan is likely to be REJECTED")
-                    st.write("The applicant profile does not match typical approval patterns.")
+                    st.warning("Prediction: Lower Approval Likelihood")
 
                 if result["confidence"] is not None:
                     st.info(f"Confidence: {result['confidence']:.2%}")
 
                 st.markdown("### Input Summary")
-                input_summary = pd.DataFrame([{
-                    "Gender": gender,
-                    "Married": married,
-                    "Dependents": dependents,
-                    "Education": education,
-                    "Self_Employed": self_employed,
-                    "ApplicantIncome": applicant_income,
-                    "CoapplicantIncome": coapplicant_income,
-                    "LoanAmount": loan_amount,
-                    "Loan_Amount_Term": loan_term,
-                    "Credit_History": 1.0 if credit_history_text == "Good (1)" else 0.0,
-                    "Property_Area": property_area,
-                }])
-                st.dataframe(input_summary, width="stretch")
+                st.dataframe(pd.DataFrame([input_data]), width="stretch")
 
-            except Exception as e:
-                st.error(f"Error: {e}")
+            except Exception:
+                logger.exception("Error during loan prediction")
+                st.error("An error occurred during prediction.")

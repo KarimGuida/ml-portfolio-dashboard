@@ -5,25 +5,36 @@ import pandas as pd
 from src.real_estate.predict import predict_price
 from src.real_estate.eda import load_data, summary, numeric_summary
 from src.real_estate.visuals import plot_price_distribution
+from src.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 METRICS_PATH = "models/real_estate_metrics.json"
 
 
 def load_metrics():
+    logger.info("Loading real estate metrics from %s", METRICS_PATH)
     try:
         with open(METRICS_PATH, "r", encoding="utf-8") as f:
-            return json.load(f)
+            metrics = json.load(f)
+            logger.info("Metrics loaded successfully")
+            return metrics
     except FileNotFoundError:
+        logger.warning("Metrics file not found")
         return None
 
 
 def render_real_estate_page():
+    logger.info("Rendering real estate page")
+
     st.header("Real Estate Price Prediction")
     st.write("Regression project for predicting house sale prices.")
 
     tabs = st.tabs(["Overview", "EDA", "Model", "Predict"])
 
+    logger.info("Loading dataset")
     df = load_data()
+    logger.info("Dataset loaded with shape=%s", df.shape)
 
     with tabs[0]:
         st.subheader("Project Overview")
@@ -90,106 +101,27 @@ def render_real_estate_page():
             left_col, right_col = st.columns(2)
 
             with left_col:
-                year_sold = st.number_input(
-                    "Year Sold",
-                    min_value=1993,
-                    max_value=2016,
-                    value=2010,
-                    step=1,
-                    help="Year when the property was sold."
-                )
-
-                property_tax = st.number_input(
-                    "Property Tax",
-                    min_value=88,
-                    max_value=4508,
-                    value=450,
-                    step=1,
-                    help="Property tax amount in dataset units."
-                )
-
-                insurance = st.number_input(
-                    "Insurance",
-                    min_value=30,
-                    max_value=1374,
-                    value=140,
-                    step=1,
-                    help="Insurance amount in dataset units."
-                )
-
-                beds = st.number_input(
-                    "Bedrooms",
-                    min_value=1,
-                    max_value=5,
-                    value=3,
-                    step=1
-                )
-
-                baths = st.number_input(
-                    "Bathrooms",
-                    min_value=1,
-                    max_value=6,
-                    value=2,
-                    step=1
-                )
-
-                sqft = st.number_input(
-                    "Living Area (sq ft)",
-                    min_value=500,
-                    max_value=7842,
-                    value=2200,
-                    step=10
-                )
-
-                lot_size = st.number_input(
-                    "Lot Size",
-                    min_value=0,
-                    max_value=436471,
-                    value=8000,
-                    step=100,
-                    help="Lot size in dataset units."
-                )
+                year_sold = st.number_input("Year Sold", 1993, 2016, 2010)
+                property_tax = st.number_input("Property Tax", 88, 4508, 450)
+                insurance = st.number_input("Insurance", 30, 1374, 140)
+                beds = st.number_input("Bedrooms", 1, 5, 3)
+                baths = st.number_input("Bathrooms", 1, 6, 2)
+                sqft = st.number_input("Living Area (sq ft)", 500, 7842, 2200)
+                lot_size = st.number_input("Lot Size", 0, 436471, 8000)
 
             with right_col:
-                year_built = st.number_input(
-                    "Year Built",
-                    min_value=1880,
-                    max_value=2014,
-                    value=1995,
-                    step=1
-                )
-
-                basement_label = st.selectbox(
-                    "Basement",
-                    ["Yes", "No"]
-                )
-
-                popular_label = st.selectbox(
-                    "Popular Area",
-                    ["Yes", "No"]
-                )
-
-                recession_label = st.selectbox(
-                    "Recession Period",
-                    ["Yes", "No"]
-                )
-
-                property_age = st.number_input(
-                    "Property Age",
-                    min_value=0,
-                    max_value=114,
-                    value=15,
-                    step=1
-                )
-
-                condo_label = st.selectbox(
-                    "Property Type",
-                    ["House", "Condo"]
-                )
+                year_built = st.number_input("Year Built", 1880, 2014, 1995)
+                basement_label = st.selectbox("Basement", ["Yes", "No"])
+                popular_label = st.selectbox("Popular Area", ["Yes", "No"])
+                recession_label = st.selectbox("Recession Period", ["Yes", "No"])
+                property_age = st.number_input("Property Age", 0, 114, 15)
+                condo_label = st.selectbox("Property Type", ["House", "Condo"])
 
             submitted = st.form_submit_button("Predict Price")
 
         if submitted:
+            logger.info("Real estate prediction requested")
+
             input_data = {
                 "year_sold": int(year_sold),
                 "property_tax": int(property_tax),
@@ -206,30 +138,17 @@ def render_real_estate_page():
                 "property_type_Condo": 1 if condo_label == "Condo" else 0,
             }
 
+            logger.info("Input data prepared for prediction")
+
             try:
                 predicted_price = predict_price(input_data)
+                logger.info("Prediction successful: price=%s", predicted_price)
 
                 st.success(f"Predicted Price: ${predicted_price:,.0f}")
-                st.write("This estimate is based on the trained regression model and the property features you entered.")
 
                 st.markdown("### Input Summary")
-                input_summary = pd.DataFrame([{
-                    "Year Sold": year_sold,
-                    "Property Tax": property_tax,
-                    "Insurance": insurance,
-                    "Bedrooms": beds,
-                    "Bathrooms": baths,
-                    "Living Area (sq ft)": sqft,
-                    "Year Built": year_built,
-                    "Lot Size": lot_size,
-                    "Basement": basement_label,
-                    "Popular Area": popular_label,
-                    "Recession Period": recession_label,
-                    "Property Age": property_age,
-                    "Property Type": condo_label,
-                }])
+                st.dataframe(pd.DataFrame([input_data]), width="stretch")
 
-                st.dataframe(input_summary, width="stretch")
-
-            except Exception as e:
-                st.error(f"Error: {e}")
+            except Exception:
+                logger.exception("Error during real estate prediction")
+                st.error("An error occurred during prediction.")

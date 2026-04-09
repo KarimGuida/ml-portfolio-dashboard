@@ -7,9 +7,18 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.impute import SimpleImputer
 from sklearn.compose import ColumnTransformer
 from sklearn.neural_network import MLPClassifier
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    confusion_matrix,
+)
 
 from src.utils.helpers import save_object
+from src.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 DATA_PATH = "data/Admission.csv"
 MODEL_PATH = "models/neural_network_pipeline.pkl"
@@ -17,79 +26,107 @@ METRICS_PATH = "models/neural_network_metrics.json"
 
 
 def load_data():
-    return pd.read_csv(DATA_PATH)
+    logger.info("Loading neural network dataset from %s", DATA_PATH)
+    df = pd.read_csv(DATA_PATH)
+    logger.info("Dataset loaded successfully with shape=%s", df.shape)
+    return df
 
 
 def main():
-    df = load_data()
+    logger.info("Starting neural network classification training pipeline")
 
-    X = df.drop(columns=["Admit_Chance", "Serial_No"], errors="ignore")
+    try:
+        df = load_data()
 
-    # Match notebook logic: convert to binary target
-    y = (df["Admit_Chance"] >= 0.80).astype(int)
+        logger.info("Preparing features and target")
+        X = df.drop(columns=["Admit_Chance", "Serial_No"], errors="ignore")
 
-    numeric_cols = X.select_dtypes(include=["number"]).columns.tolist()
-    categorical_cols = X.select_dtypes(exclude=["number"]).columns.tolist()
+        # Match notebook logic: convert to binary target
+        y = (df["Admit_Chance"] >= 0.80).astype(int)
+        logger.info("Binary target created using threshold Admit_Chance >= 0.80")
 
-    numeric_pipeline = Pipeline([
-        ("imputer", SimpleImputer(strategy="median")),
-        ("scaler", StandardScaler())
-    ])
+        numeric_cols = X.select_dtypes(include=["number"]).columns.tolist()
+        categorical_cols = X.select_dtypes(exclude=["number"]).columns.tolist()
 
-    categorical_pipeline = Pipeline([
-        ("imputer", SimpleImputer(strategy="most_frequent"))
-    ])
+        logger.info("Numeric columns: %s", numeric_cols)
+        logger.info("Categorical columns: %s", categorical_cols)
 
-    preprocessor = ColumnTransformer([
-        ("num", numeric_pipeline, numeric_cols),
-        ("cat", categorical_pipeline, categorical_cols)
-    ])
+        logger.info("Building preprocessing pipelines")
+        numeric_pipeline = Pipeline([
+            ("imputer", SimpleImputer(strategy="median")),
+            ("scaler", StandardScaler())
+        ])
 
-    pipeline = Pipeline([
-        ("preprocessor", preprocessor),
-        ("model", MLPClassifier(
-            hidden_layer_sizes=(64, 32),
-            max_iter=1000,
-            random_state=42
-        ))
-    ])
+        categorical_pipeline = Pipeline([
+            ("imputer", SimpleImputer(strategy="most_frequent"))
+        ])
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X,
-        y,
-        test_size=0.2,
-        random_state=42,
-        stratify=y
-    )
+        preprocessor = ColumnTransformer([
+            ("num", numeric_pipeline, numeric_cols),
+            ("cat", categorical_pipeline, categorical_cols)
+        ])
 
-    pipeline.fit(X_train, y_train)
-    y_pred = pipeline.predict(X_test)
+        logger.info("Building MLPClassifier pipeline")
+        pipeline = Pipeline([
+            ("preprocessor", preprocessor),
+            ("model", MLPClassifier(
+                hidden_layer_sizes=(64, 32),
+                max_iter=1000,
+                random_state=42
+            ))
+        ])
 
-    accuracy = accuracy_score(y_test, y_pred)
-    precision = precision_score(y_test, y_pred, zero_division=0)
-    recall = recall_score(y_test, y_pred, zero_division=0)
-    f1 = f1_score(y_test, y_pred, zero_division=0)
-    cm = confusion_matrix(y_test, y_pred).tolist()
+        logger.info("Splitting dataset into train and test sets")
+        X_train, X_test, y_train, y_test = train_test_split(
+            X,
+            y,
+            test_size=0.2,
+            random_state=42,
+            stratify=y
+        )
+        logger.info(
+            "Train/test split complete with train_shape=%s and test_shape=%s",
+            X_train.shape,
+            X_test.shape,
+        )
 
-    save_object(pipeline, MODEL_PATH)
+        logger.info("Training neural network pipeline")
+        pipeline.fit(X_train, y_train)
 
-    metrics = {
-        "Accuracy": float(accuracy),
-        "Precision": float(precision),
-        "Recall": float(recall),
-        "F1": float(f1),
-        "Confusion_Matrix": cm,
-        "train_shape": list(X_train.shape),
-        "test_shape": list(X_test.shape),
-        "features": list(X.columns),
-        "target_definition": "1 if Admit_Chance >= 0.80 else 0"
-    }
+        logger.info("Evaluating model on test set")
+        y_pred = pipeline.predict(X_test)
 
-    with open(METRICS_PATH, "w", encoding="utf-8") as f:
-        json.dump(metrics, f, indent=4)
+        accuracy = accuracy_score(y_test, y_pred)
+        precision = precision_score(y_test, y_pred, zero_division=0)
+        recall = recall_score(y_test, y_pred, zero_division=0)
+        f1 = f1_score(y_test, y_pred, zero_division=0)
+        cm = confusion_matrix(y_test, y_pred).tolist()
 
-    print("Neural network classification training complete.")
-    print(metrics)
+        logger.info("Saving trained pipeline to %s", MODEL_PATH)
+        save_object(pipeline, MODEL_PATH)
+
+        metrics = {
+            "Accuracy": float(accuracy),
+            "Precision": float(precision),
+            "Recall": float(recall),
+            "F1": float(f1),
+            "Confusion_Matrix": cm,
+            "train_shape": list(X_train.shape),
+            "test_shape": list(X_test.shape),
+            "features": list(X.columns),
+            "target_definition": "1 if Admit_Chance >= 0.80 else 0"
+        }
+
+        logger.info("Saving metrics to %s", METRICS_PATH)
+        with open(METRICS_PATH, "w", encoding="utf-8") as f:
+            json.dump(metrics, f, indent=4)
+
+        logger.info("Neural network classification training completed successfully")
+        logger.info("Final metrics: %s", metrics)
+
+    except Exception:
+        logger.exception("Error during neural network training pipeline")
+        raise
 
 
 if __name__ == "__main__":

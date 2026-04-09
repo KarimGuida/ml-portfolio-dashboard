@@ -3,21 +3,36 @@ import pandas as pd
 import streamlit as st
 
 from src.neural_network.predict import predict_admission
+from src.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 METRICS_PATH = "models/neural_network_metrics.json"
 DATA_PATH = "data/Admission.csv"
 
 
 def load_metrics():
-    with open(METRICS_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
+    logger.info("Loading neural network metrics from %s", METRICS_PATH)
+    try:
+        with open(METRICS_PATH, "r", encoding="utf-8") as f:
+            metrics = json.load(f)
+            logger.info("Metrics loaded successfully")
+            return metrics
+    except FileNotFoundError:
+        logger.warning("Metrics file not found")
+        return None
 
 
 def load_data():
-    return pd.read_csv(DATA_PATH)
+    logger.info("Loading dataset from %s", DATA_PATH)
+    df = pd.read_csv(DATA_PATH)
+    logger.info("Dataset loaded with shape=%s", df.shape)
+    return df
 
 
 def render_neural_network_page():
+    logger.info("Rendering neural network page")
+
     st.header("Admission Classification using Neural Network")
     st.write("Classify applicants as likely above or below the notebook-defined admission threshold using an MLPClassifier model.")
 
@@ -44,8 +59,7 @@ def render_neural_network_page():
         st.write(
             """
             This model simulates an admission screening workflow by classifying applicants
-            based on academic and profile-based features. It is intended to identify profiles
-            that meet a predefined admission threshold for analysis purposes.
+            based on academic and profile-based features.
             """
         )
 
@@ -53,22 +67,17 @@ def render_neural_network_page():
         feature_df = pd.DataFrame(
             {
                 "Feature": [
-                    "GRE Score",
-                    "TOEFL Score",
-                    "University Rating",
-                    "Statement of Purpose (SOP)",
-                    "Letter of Recommendation (LOR)",
-                    "CGPA",
-                    "Research Experience",
+                    "GRE Score", "TOEFL Score", "University Rating",
+                    "SOP", "LOR", "CGPA", "Research"
                 ],
                 "Description": [
                     "Graduate Record Examination score",
                     "TOEFL English proficiency score",
                     "Institution rating",
-                    "Strength of statement of purpose",
-                    "Strength of recommendation letters",
-                    "Undergraduate academic performance",
-                    "Whether the applicant has research experience",
+                    "Statement of purpose strength",
+                    "Recommendation strength",
+                    "Undergraduate performance",
+                    "Research experience"
                 ],
             }
         )
@@ -81,14 +90,8 @@ def render_neural_network_page():
 
         st.markdown("### Numeric Feature Summary")
         numeric_cols = [
-            "GRE_Score",
-            "TOEFL_Score",
-            "University_Rating",
-            "SOP",
-            "LOR",
-            "CGPA",
-            "Research",
-            "Admit_Chance",
+            "GRE_Score", "TOEFL_Score", "University_Rating",
+            "SOP", "LOR", "CGPA", "Research", "Admit_Chance",
         ]
         existing_numeric_cols = [col for col in numeric_cols if col in df.columns]
         st.dataframe(df[existing_numeric_cols].describe().T, width="stretch")
@@ -96,10 +99,9 @@ def render_neural_network_page():
         st.markdown("### Key Observations")
         st.write(
             """
-            - GRE Score and CGPA are strong academic indicators associated with higher admission outcomes.
-            - Research experience tends to improve applicant competitiveness.
-            - SOP and LOR provide supporting signal alongside quantitative performance measures.
-            - The original target variable is continuous, but the deployed application uses a classification threshold for decision modeling.
+            - GRE and CGPA are strong indicators
+            - Research improves outcomes
+            - SOP and LOR add supporting signal
             """
         )
 
@@ -107,101 +109,74 @@ def render_neural_network_page():
     with tabs[2]:
         st.markdown("### Model Performance")
 
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Accuracy", f"{metrics['Accuracy']:.4f}")
-        c2.metric("Precision", f"{metrics['Precision']:.4f}")
-        c3.metric("Recall", f"{metrics['Recall']:.4f}")
-        c4.metric("F1 Score", f"{metrics['F1']:.4f}")
+        if metrics is None:
+            st.warning("Metrics file not found. Run training script.")
+        else:
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("Accuracy", f"{metrics['Accuracy']:.4f}")
+            c2.metric("Precision", f"{metrics['Precision']:.4f}")
+            c3.metric("Recall", f"{metrics['Recall']:.4f}")
+            c4.metric("F1 Score", f"{metrics['F1']:.4f}")
 
-        st.markdown("### Confusion Matrix")
-        cm_df = pd.DataFrame(
-            metrics["Confusion_Matrix"],
-            index=["Actual 0", "Actual 1"],
-            columns=["Predicted 0", "Predicted 1"],
-        )
-        st.dataframe(cm_df, width="stretch")
-
-        st.markdown("### Model Overview")
-        st.write(
-            """
-            The deployed model is a neural network classifier trained to identify applicants
-            likely to meet the admission threshold defined in the notebook logic.
-
-            The pipeline includes:
-            - missing value handling
-            - numerical feature scaling
-            - neural network classification using `MLPClassifier`
-            """
-        )
-
-        st.markdown("### Metric Interpretation")
-        st.write(
-            """
-            - **Accuracy** measures overall classification correctness.
-            - **Precision** reflects how reliable positive predictions are.
-            - **Recall** indicates how effectively the model captures strong applicant profiles.
-            - **F1 Score** balances precision and recall in a single summary metric.
-            """
-        )
-
-        if "target_definition" in metrics:
-            st.caption(f"Target definition: {metrics['target_definition']}")
+            st.markdown("### Confusion Matrix")
+            cm_df = pd.DataFrame(
+                metrics["Confusion_Matrix"],
+                index=["Actual 0", "Actual 1"],
+                columns=["Predicted 0", "Predicted 1"],
+            )
+            st.dataframe(cm_df, width="stretch")
 
     # ---------------- PREDICT ----------------
     with tabs[3]:
         st.subheader("Interactive Prediction")
-        st.write("Enter applicant academic details to classify whether the profile is likely to meet the admission threshold.")
 
         with st.form("neural_network_prediction_form"):
             col1, col2 = st.columns(2)
 
             with col1:
-                gre = st.number_input("GRE Score", min_value=0, max_value=340, value=320, step=1)
-                toefl = st.number_input("TOEFL Score", min_value=0, max_value=120, value=105, step=1)
-                university_rating = st.selectbox("University Rating", [1, 2, 3, 4, 5], index=2)
-                sop = st.selectbox("Statement of Purpose (SOP)", [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0], index=6)
+                gre = st.number_input("GRE Score", 0, 340, 320)
+                toefl = st.number_input("TOEFL Score", 0, 120, 105)
+                university_rating = st.selectbox("University Rating", [1, 2, 3, 4, 5])
+                sop = st.selectbox("SOP", [1.0,2.0,3.0,4.0,5.0])
 
             with col2:
-                lor = st.selectbox("Letter of Recommendation (LOR)", [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0], index=6)
-                cgpa = st.number_input("CGPA", min_value=0.0, max_value=10.0, value=8.5, step=0.1)
-                research_text = st.selectbox("Research Experience", ["No", "Yes"], index=1)
+                lor = st.selectbox("LOR", [1.0,2.0,3.0,4.0,5.0])
+                cgpa = st.number_input("CGPA", 0.0, 10.0, 8.5)
+                research_text = st.selectbox("Research", ["No", "Yes"])
 
-            submitted = st.form_submit_button("Predict Admission Class")
+            submitted = st.form_submit_button("Predict")
 
         if submitted:
-            research = 1 if research_text == "Yes" else 0
+            logger.info("Neural network prediction requested")
 
-            input_data = {
-                "GRE_Score": gre,
-                "TOEFL_Score": toefl,
-                "University_Rating": university_rating,
-                "SOP": sop,
-                "LOR": lor,
-                "CGPA": cgpa,
-                "Research": research,
-            }
+            try:
+                input_data = {
+                    "GRE_Score": gre,
+                    "TOEFL_Score": toefl,
+                    "University_Rating": university_rating,
+                    "SOP": sop,
+                    "LOR": lor,
+                    "CGPA": cgpa,
+                    "Research": 1 if research_text == "Yes" else 0,
+                }
 
-            result = predict_admission(input_data)
+                result = predict_admission(input_data)
+                logger.info("Prediction result: %s", result)
 
-            predicted_class = result["predicted_class"]
-            probability = result["probability"]
+                predicted_class = result["predicted_class"]
+                probability = result["probability"]
 
-            st.markdown("### Prediction Result")
+                if predicted_class == 1:
+                    st.success("Prediction: High Admission Likelihood")
+                else:
+                    st.warning("Prediction: Low Admission Likelihood")
 
-            if predicted_class == 1:
-                st.success("Prediction: High Admission Likelihood")
-            else:
-                st.warning("Prediction: Low Admission Likelihood")
+                if probability is not None:
+                    st.info(f"Probability: {probability:.2%}")
 
-            if probability is not None:
-                st.info(f"Estimated probability of positive class: {probability:.2%}")
+                st.markdown("### Input Summary")
+                st.dataframe(pd.DataFrame([input_data]), width="stretch")
 
-            st.markdown("### Interpretation")
-            if predicted_class == 1:
-                st.write("This applicant profile is classified above the admission threshold used in the notebook.")
-            else:
-                st.write("This applicant profile is classified below the admission threshold used in the notebook.")
-
-            st.markdown("### Input Summary")
-            input_summary = pd.DataFrame([input_data])
-            st.dataframe(input_summary, width="stretch")
+            except Exception:
+                logger.exception("Error during neural network prediction")
+                st.error("An error occurred during prediction.")
