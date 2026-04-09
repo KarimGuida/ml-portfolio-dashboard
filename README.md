@@ -96,12 +96,15 @@ ml-portfolio-dashboard/
     ├── neural_network/
     ├── real_estate/
     └── utils/
-
+```
 
 ## Installation
 
+```
 git clone https://github.com/KarimGuida/ml-portfolio-dashboard.git
 cd ml-portfolio-dashboard
-
+```
+```
 pip install -r requirements.txt
 streamlit run app.py
+```
